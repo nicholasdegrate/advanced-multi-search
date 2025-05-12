@@ -1,80 +1,14 @@
 import { type ColumnDef } from "@tanstack/react-table";
 
+import { fetchBuilding } from "@/api";
 import {
   AdvancedSearch,
   type RelationRecord,
+  type RelationRecordState,
 } from "@/components/advaned-search";
-import { DataTable } from "@/components/data.table";
-
-const relations = {
-  customer: [
-    {
-      label: "Full Name (customer)",
-      value: "customer.fullName",
-      type: "string",
-    },
-    { label: "Email (customer)", value: "customer.email", type: "string" },
-    {
-      label: "Phone Number (customer)",
-      value: "customer.phoneNumber",
-      type: "string",
-    },
-    {
-      label: "Created At (customer)",
-      value: "customer.createdAt",
-      type: "date",
-    },
-    {
-      label: "Is Active (customer)",
-      value: "customer.isActive",
-      type: "boolean",
-    },
-    {
-      label: "Type (customer)",
-      value: "customer.type",
-      type: "select",
-      options: ["Individual", "Business"],
-    },
-  ],
-  order: [
-    { label: "Order ID", value: "customer.order.id", type: "string" },
-    {
-      label: "Product Title (order)",
-      value: "customer.order.product.title",
-      type: "string",
-    },
-    {
-      label: "Status (order)",
-      value: "customer.order.status",
-      type: "select",
-      options: ["Pending", "Shipped", "Delivered", "Cancelled"],
-    },
-    {
-      label: "Ordered At (order)",
-      value: "customer.order.orderedAt",
-      type: "date",
-    },
-  ],
-  building: [
-    {
-      label: "Name (building)",
-      value: "customer.building.name",
-      type: "select",
-      options: ["North Tower", "South Wing", "East Complex"],
-    },
-    {
-      label: "Type (building)",
-      value: "customer.building.type",
-      type: "select",
-      options: ["Residential", "Commercial", "Mixed Use"],
-    },
-    {
-      label: "Completed At (building)",
-      value: "customer.building.completedAt",
-      type: "date",
-    },
-  ],
-} satisfies Record<string, RelationRecord[]>;
+import { DataTable } from "@/components/data-table";
+import { useFetch } from "@/use-fetch";
+import { useMemo } from "react";
 
 type Payment = {
   id: string;
@@ -212,11 +146,75 @@ const columns: ColumnDef<Payment>[] = [
   },
 ];
 
+const defaultFilterValue = {
+  field: "customer.fullName",
+  operator: "contains",
+};
+
 export function App() {
+  const buildings = useFetch(fetchBuilding);
+
+  const relations = useMemo(() => {
+    return {
+      customer: [
+        {
+          label: "Full Name (customer)",
+          value: "customer.fullName",
+          type: "string",
+        },
+        { label: "Email (customer)", value: "customer.email", type: "string" },
+        {
+          label: "Phone Number (customer)",
+          value: "customer.phoneNumber",
+          type: "string",
+        },
+        {
+          label: "Created At (customer)",
+          value: "customer.createdAt",
+          type: "date",
+        },
+      ],
+      order: [
+        { label: "Order ID", value: "customer.order.id", type: "string" },
+        {
+          label: "Product Title (order)",
+          value: "customer.order.product.title",
+          type: "string",
+        },
+        {
+          label: "Ordered At (order)",
+          value: "customer.order.orderedAt",
+          type: "date",
+        },
+      ],
+      building: [
+        {
+          label: "Name (building)",
+          value: "customer.building.name",
+          type: "select",
+          options: {
+            placeholder: "Select a building...",
+            loading: buildings.loading,
+            data: buildings.data.map((b) => ({
+              label: b.name,
+              value: b.id,
+            })),
+          },
+        },
+      ],
+    } satisfies Record<string, RelationRecord[]>;
+  }, [buildings]);
+
   return (
     <div className="max-w-4xl m-auto mt-10">
       <div className="flex items-center py-4">
-        <AdvancedSearch relations={relations} />
+        <AdvancedSearch
+          defaultFilterValue={defaultFilterValue}
+          relations={relations}
+          onSearch={function (filters: RelationRecordState[]): void {
+            console.log(filters);
+          }}
+        />
       </div>
       <DataTable columns={columns} data={payments} />
     </div>
